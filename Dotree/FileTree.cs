@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using Dotree.Extensions;
 using Spectre.Console;
-using static Dotree.Constants;
 
 namespace Dotree;
 
@@ -59,33 +58,38 @@ public class FileTree
         };
     }
 
-    public void Display()
+    public void Display(TreeConfig config)
     {
         var sb = new StringBuilder();
-        sb.AppendLine($"[{Root.FileType.Color()}]{Root.FileName}[/] ([red]{Root.Size}[/])");
-        ConstructBranch(Root, sb, basePrefix: "");
+        ConstructRow(Root, sb, basePrefix: "", config: config);
+        ConstructBranch(Root, sb, basePrefix: "", config: config);
         AnsiConsole.MarkupLine(sb.ToString());
     }
 
-    private void ConstructBranch(TreeNode node, StringBuilder sb, string basePrefix)
+    private void ConstructRow(TreeNode node, StringBuilder sb, string basePrefix, TreeConfig config)
+    {
+        sb.AppendLine($"{basePrefix}[{node.FileType.Color(config)}]{node.FileName}[/] ([{config.MemorySizeColor}]{node.Size}[/])");
+    }
+
+    private void ConstructBranch(TreeNode node, StringBuilder sb, string basePrefix, TreeConfig config)
     {
         for (int i = 0; i < node.Children.Count; i++)
         {
             bool isLast = (i == node.Children.Count - 1);
 
             var child = node.Children[i];
-            var filePrefix = !isLast
-                ? $"{basePrefix}[aqua]{SidewayT}{Horizontal}[/]{Spacing}"
-                : $"{basePrefix}[aqua]{BottomL}{Horizontal}[/]{Spacing}";
+            var filePrefix = isLast
+                ? $"{basePrefix}[{config.BoxBorderColor}]{(config.BottomL)}{config.Horizontal}[/]{config.Spacing}"
+                : $"{basePrefix}[{config.BoxBorderColor}]{(config.SidewayT)}{config.Horizontal}[/]{config.Spacing}";
 
-            sb.AppendLine($"{filePrefix}[{child.FileType.Color()}]{child.FileName}[/] ([red]{child.Size}[/])");
+            ConstructRow(child, sb, basePrefix: filePrefix, config: config);
 
             if (child.FileType == FileType.Dir)
             {
-                var dirPrefix = !isLast
-                    ? $"{basePrefix}[aqua]{Vertical}[/] {Spacing}"
-                    : $"{basePrefix}{Spacing}{Spacing}";
-                ConstructBranch(child, sb, basePrefix: dirPrefix);
+                var dirPrefix = isLast
+                    ? $"{basePrefix}{config.Spacing}{config.Spacing}"
+                    : $"{basePrefix}[{config.BoxBorderColor}]{config.Vertical}[/] {config.Spacing}";
+                ConstructBranch(child, sb, basePrefix: dirPrefix, config: config);
             }
         }
     }

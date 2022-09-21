@@ -1,7 +1,7 @@
 ﻿using System;
 using System.ComponentModel;
 using System.IO;
-using System.Text;
+using System.Text.Json;
 using Dotree;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -30,10 +30,43 @@ internal sealed class DotreeCommand : Command<DotreeCommand.Settings>
 
     public override int Execute(CommandContext context, Settings settings)
     {
+        TryGetConfig(out var config);
+
         var searchPath = Path.Join(Directory.GetCurrentDirectory(), settings.SearchPath);
         var tree = FileTree.Create(searchPath);
-        tree.Display();
+        tree.Display(config);
 
         return 0;
+    }
+
+    private bool TryGetConfig(out TreeConfig config)
+    {
+        var pathToConfig = Environment.GetEnvironmentVariable("DOTREE_CONFIG");
+
+        try
+        {
+            if (pathToConfig is null)
+            {
+                config = new TreeConfig();
+            }
+            else
+            {
+                var json = File.ReadAllText(pathToConfig);
+                config = JsonSerializer.Deserialize<TreeConfig>(json, new JsonSerializerOptions()
+                {
+                    AllowTrailingCommas = true
+                });
+            }
+
+            return true;
+        }
+        catch (Exception e)
+        {
+            AnsiConsole.WriteException(e, ExceptionFormats.ShortenEverything);
+        }
+
+        AnsiConsole.MarkupLine("[red]An error happened while reading config file. Using default configuration.[/]");
+        config = new TreeConfig();
+        return true;
     }
 }

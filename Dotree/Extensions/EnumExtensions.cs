@@ -14,12 +14,12 @@ public static class EnumExtensions
             _ => throw new ArgumentOutOfRangeException(nameof(unit), unit, null)
         };
 
-    public static string Color(this FileType fileType) =>
+    public static string Color(this FileType fileType, TreeConfig config) =>
         fileType switch
         {
-            FileType.Dir => "yellow",
-            FileType.File => "white",
-            FileType.SymLink => "green",
+            FileType.Dir => config.DirectoryColor,
+            FileType.File => config.FileColor,
+            FileType.SymLink => config.SymLinkColor,
             _ => throw new ArgumentOutOfRangeException(nameof(fileType), fileType, null)
         };
 }
