@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using Dotree.Extensions;
+using Spectre.Console;
 using static Dotree.Constants;
 
 namespace Dotree;
@@ -11,14 +12,14 @@ namespace Dotree;
 public class FileTree
 {
     public TreeNode Root { get; init; }
-    
+
     public static FileTree Create(string path)
     {
         var fileInfo = new FileInfo(path);
-        var root = fileInfo.IsDirectory() 
-            ? CreateDirNode(path, depth: 0) 
+        var root = fileInfo.IsDirectory()
+            ? CreateDirNode(path, depth: 0)
             : CreateFileNode(path, depth: 0);
-        
+
         return new FileTree
         {
             Root = root
@@ -37,7 +38,7 @@ public class FileTree
             Depth = depth,
         };
     }
-    
+
     private static TreeNode CreateDirNode(string root, int depth)
     {
         var children = new List<TreeNode>();
@@ -45,7 +46,7 @@ public class FileTree
         children.AddRange(Directory.EnumerateDirectories(root).Select(node => CreateDirNode(node, depth + 1)));
         children.Sort((x, y) => string.Compare(x.FileName, y.FileName, StringComparison.OrdinalIgnoreCase));
         var length = children.Sum(c => c.Length);
-            
+
         var fileInfo = new FileInfo(root);
         return new TreeNode()
         {
@@ -61,9 +62,9 @@ public class FileTree
     public void Display()
     {
         var sb = new StringBuilder();
-        sb.AppendLine($"{Root.FileName} ({Root.Size})");
+        sb.AppendLine($"[{Root.FileType.Color()}]{Root.FileName}[/] ([red]{Root.Size}[/])");
         ConstructBranch(Root, sb, basePrefix: "");
-        Console.Write(sb);
+        AnsiConsole.MarkupLine(sb.ToString());
     }
 
     private void ConstructBranch(TreeNode node, StringBuilder sb, string basePrefix)
@@ -71,18 +72,18 @@ public class FileTree
         for (int i = 0; i < node.Children.Count; i++)
         {
             bool isLast = (i == node.Children.Count - 1);
-            
+
             var child = node.Children[i];
-            var filePrefix = !isLast 
-                ? $"{basePrefix}{SidewayT}{Horizontal}{Spacing}"
-                : $"{basePrefix}{BottomL}{Horizontal}{Spacing}";
-            
-            sb.AppendLine($"{filePrefix}{child.FileName} ({child.Size})");
-        
+            var filePrefix = !isLast
+                ? $"{basePrefix}[aqua]{SidewayT}{Horizontal}[/]{Spacing}"
+                : $"{basePrefix}[aqua]{BottomL}{Horizontal}[/]{Spacing}";
+
+            sb.AppendLine($"{filePrefix}[{child.FileType.Color()}]{child.FileName}[/] ([red]{child.Size}[/])");
+
             if (child.FileType == FileType.Dir)
             {
                 var dirPrefix = !isLast
-                    ? $"{basePrefix}{Vertical} {Spacing}"
+                    ? $"{basePrefix}[aqua]{Vertical}[/] {Spacing}"
                     : $"{basePrefix}{Spacing}{Spacing}";
                 ConstructBranch(child, sb, basePrefix: dirPrefix);
             }

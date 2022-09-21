@@ -13,4 +13,13 @@ public static class EnumExtensions
             MemoryUnit.GB => "GB",
             _ => throw new ArgumentOutOfRangeException(nameof(unit), unit, null)
         };
+
+    public static string Color(this FileType fileType) =>
+        fileType switch
+        {
+            FileType.Dir => "yellow",
+            FileType.File => "white",
+            FileType.SymLink => "green",
+            _ => throw new ArgumentOutOfRangeException(nameof(fileType), fileType, null)
+        };
 }
