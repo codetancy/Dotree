@@ -1,8 +1,9 @@
 ﻿using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 
 namespace Dotree;
 
-public struct TreeConfig
+public record struct TreeConfig
 {
     public TreeConfig()
     {
@@ -27,14 +28,20 @@ public struct TreeConfig
     public string Spacing { get; set; } = "  ";
 
     [JsonPropertyName("sidewayTCharacter")]
-    public string SidewayT { get; set; } = "\u251C";
+    public char SidewayT { get; set; } = '\u251C';
 
     [JsonPropertyName("horizontalCharacter")]
-    public string Horizontal { get; set; } = "\u2500";
+    public char Horizontal { get; set; } = '\u2500';
 
     [JsonPropertyName("verticalCharacter")]
-    public string Vertical { get; set; } = "\u2502";
+    public char Vertical { get; set; } = '\u2502';
 
     [JsonPropertyName("bottomLCharacter")]
-    public string BottomL { get; set; } = "\u2514";
+    public char BottomL { get; set; } = '\u2514';
+
+    [JsonPropertyName("maxDepth")]
+    public int MaxDepth { get; set; } = int.MaxValue;
+
+    [JsonPropertyName("searchPattern")]
+    public string SearchPattern { get; set; } = ".*";
 }
