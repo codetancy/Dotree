@@ -33,13 +33,13 @@ internal sealed class DotreeCommand : Command<DotreeCommand.Settings>
         TryGetConfig(out var config);
 
         var searchPath = Path.Join(Directory.GetCurrentDirectory(), settings.SearchPath);
-        var tree = FileTree.Create(searchPath);
-        tree.Display(config);
+        var tree = new FileTree(searchPath, config: config);
+        AnsiConsole.MarkupLine(tree.ToString());
 
         return 0;
     }
 
-    private bool TryGetConfig(out TreeConfig config)
+    private static bool TryGetConfig(out TreeConfig config)
     {
         var pathToConfig = Environment.GetEnvironmentVariable("DOTREE_CONFIG");
 

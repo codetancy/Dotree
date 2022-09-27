@@ -3,75 +3,94 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using Dotree.Extensions;
-using Spectre.Console;
 
 namespace Dotree;
 
 public class FileTree
 {
+    private readonly TreeConfig _config;
+    private readonly Regex _searchPattern;
+
     public TreeNode Root { get; init; }
 
-    public static FileTree Create(string path)
+    public FileTree(string root): this(root, new TreeConfig())
     {
-        var fileInfo = new FileInfo(path);
-        var root = fileInfo.IsDirectory()
-            ? CreateDirNode(path, depth: 0)
-            : CreateFileNode(path, depth: 0);
-
-        return new FileTree
-        {
-            Root = root
-        };
     }
 
-    private static TreeNode CreateFileNode(string filename, int depth)
+    public FileTree(string root, TreeConfig config)
     {
-        var fileInfo = new FileInfo(filename);
-        return new TreeNode {
-            FileName = fileInfo.Name,
-            FileType = FileType.File,
-            Length = fileInfo.Length,
-            Size = MemorySize.FromBytes(fileInfo.Length),
-            Children = new List<TreeNode>(),
-            Depth = depth,
-        };
-    }
-
-    private static TreeNode CreateDirNode(string root, int depth)
-    {
-        var children = new List<TreeNode>();
-        children.AddRange(Directory.EnumerateFiles(root).Select(node => CreateFileNode(node, depth + 1)));
-        children.AddRange(Directory.EnumerateDirectories(root).Select(node => CreateDirNode(node, depth + 1)));
-        children.Sort((x, y) => string.Compare(x.FileName, y.FileName, StringComparison.OrdinalIgnoreCase));
-        var length = children.Sum(c => c.Length);
+        _config = config;
+        _searchPattern = new Regex(_config.SearchPattern, RegexOptions.Multiline);
 
         var fileInfo = new FileInfo(root);
+        if (fileInfo.IsDirectory())
+        {
+            Root = CreateDirNode(fileInfo.FullName, fileInfo.Name, depth: 0);
+        }
+        else if (fileInfo.IsSymLink())
+        {
+            Root = CreateFileNode(fileInfo.Name, FileType.SymLink, length: 0, depth: 0);
+        }
+        else
+        {
+            Root = CreateFileNode(fileInfo.Name, FileType.File, fileInfo.Length, depth: 0);
+        }
+    }
+
+    private TreeNode CreateFileNode(string filename, FileType fileType, long length, int depth)
+        => new TreeNode {
+            FileName = filename,
+            FileType = fileType,
+            Length = length,
+            Depth = depth,
+        };
+
+    private TreeNode CreateDirNode(string path, string name, int depth)
+    {
+        var children = new List<TreeNode>();
+        if (depth < _config.MaxDepth)
+        {
+            children.AddRange(
+                Directory.EnumerateFileSystemEntries(path)
+                    .Where(entry => _searchPattern.IsMatch(entry))
+                    .Select(entry => new FileInfo(entry))
+                    .Select(fileInfo =>
+                    {
+                        if (fileInfo.IsDirectory())
+                            return CreateDirNode(fileInfo.FullName, fileInfo.Name, depth + 1);
+                        if (fileInfo.IsSymLink())
+                            return CreateFileNode(fileInfo.Name, FileType.SymLink, 0, depth + 1);
+                        return CreateFileNode(fileInfo.Name, FileType.File, fileInfo.Length, depth + 1);
+                    }));
+            children.Sort((x, y) => string.Compare(x.FileName, y.FileName, StringComparison.OrdinalIgnoreCase));
+        }
+
         return new TreeNode()
         {
-            FileName = fileInfo.Name,
+            FileName = name,
             FileType = FileType.Dir,
-            Length = length,
-            Size = MemorySize.FromBytes(length),
+            Length = children.Sum(c => c.Length),
             Children = children,
             Depth = depth,
         };
     }
 
-    public void Display(TreeConfig config)
+    public override string ToString()
     {
-        var sb = new StringBuilder();
-        ConstructRow(Root, sb, basePrefix: "", config: config);
-        ConstructBranch(Root, sb, basePrefix: "", config: config);
-        AnsiConsole.MarkupLine(sb.ToString());
+        var sb = new StringBuilder(1024);
+        ConstructRow(Root, sb);
+        ConstructBranch(Root, sb);
+        return sb.ToString();
     }
 
-    private void ConstructRow(TreeNode node, StringBuilder sb, string basePrefix, TreeConfig config)
+    private void ConstructRow(TreeNode node, StringBuilder sb, string basePrefix = "")
     {
-        sb.AppendLine($"{basePrefix}[{node.FileType.Color(config)}]{node.FileName}[/] ([{config.MemorySizeColor}]{node.Size}[/])");
+        sb.AppendLine($"{basePrefix}[{node.FileType.Color(_config)}]{node.FileName}[/] ([{_config.MemorySizeColor}]{node.Size}[/])");
     }
 
-    private void ConstructBranch(TreeNode node, StringBuilder sb, string basePrefix, TreeConfig config)
+    private void ConstructBranch(TreeNode node, StringBuilder sb, string basePrefix = "")
     {
         for (int i = 0; i < node.Children.Count; i++)
         {
@@ -79,17 +98,17 @@ public class FileTree
 
             var child = node.Children[i];
             var filePrefix = isLast
-                ? $"{basePrefix}[{config.BoxBorderColor}]{(config.BottomL)}{config.Horizontal}[/]{config.Spacing}"
-                : $"{basePrefix}[{config.BoxBorderColor}]{(config.SidewayT)}{config.Horizontal}[/]{config.Spacing}";
+                ? $"{basePrefix}[{_config.BoxBorderColor}]{_config.BottomL}{_config.Horizontal}[/]{_config.Spacing}"
+                : $"{basePrefix}[{_config.BoxBorderColor}]{_config.SidewayT}{_config.Horizontal}[/]{_config.Spacing}";
 
-            ConstructRow(child, sb, basePrefix: filePrefix, config: config);
+            ConstructRow(child, sb, basePrefix: filePrefix);
 
             if (child.FileType == FileType.Dir)
             {
                 var dirPrefix = isLast
-                    ? $"{basePrefix}{config.Spacing}{config.Spacing}"
-                    : $"{basePrefix}[{config.BoxBorderColor}]{config.Vertical}[/] {config.Spacing}";
-                ConstructBranch(child, sb, basePrefix: dirPrefix, config: config);
+                    ? $"{basePrefix}{_config.Spacing}{_config.Spacing}"
+                    : $"{basePrefix}[{_config.BoxBorderColor}]{_config.Vertical}[/] {_config.Spacing}";
+                ConstructBranch(child, sb, basePrefix: dirPrefix);
             }
         }
     }
