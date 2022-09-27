@@ -8,4 +8,9 @@ public static class FileExtensions
     {
         return fileInfo.Attributes.HasFlag(FileAttributes.Directory);
     }
+
+    public static bool IsSymLink(this FileInfo fileInfo)
+    {
+        return fileInfo.Attributes.HasFlag(FileAttributes.ReparsePoint);
+    }
 }
