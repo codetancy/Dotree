@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.IO;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Dotree;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -21,16 +22,34 @@ internal sealed class DotreeCommand : Command<DotreeCommand.Settings>
 
         [Description("Levels of nested directory to display. Defaults to all.")]
         [CommandOption("-l|--levels")]
-        public int Levels { get; init; }
+        public string Levels { get; init; }
 
-        [Description("Regex expression for entries to exclude. Defaults to none.")]
-        [CommandOption("-e|--exclude")]
-        public string ExcludePattern { get; init; }
+        [Description("Regex expression for entries to search. Defaults to all.")]
+        [CommandOption("-p|--pattern")]
+        public string SearchPattern { get; init; }
+
+        public override ValidationResult Validate()
+        {
+            if (!string.IsNullOrEmpty(Levels))
+            {
+                if (!int.TryParse(Levels, out _))
+                {
+                    return ValidationResult.Error("--levels must be a non-negative integer");
+                }
+            }
+
+            return ValidationResult.Success();
+        }
     }
 
     public override int Execute(CommandContext context, Settings settings)
     {
         TryGetConfig(out var config);
+        config = config with
+        {
+            MaxDepth = string.IsNullOrEmpty(settings.Levels) ? config.MaxDepth : int.Parse(settings.Levels),
+            SearchPattern = string.IsNullOrEmpty(settings.SearchPattern) ? config.SearchPattern : settings.SearchPattern,
+        };
 
         var searchPath = Path.Join(Directory.GetCurrentDirectory(), settings.SearchPath);
         var tree = new FileTree(searchPath, config: config);
