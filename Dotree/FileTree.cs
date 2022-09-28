@@ -58,10 +58,10 @@ public class FileTree
                     .Select(entry => new FileInfo(entry))
                     .Select(fileInfo =>
                     {
-                        if (fileInfo.IsDirectory())
-                            return CreateDirNode(fileInfo.FullName, fileInfo.Name, depth + 1);
                         if (fileInfo.IsSymLink())
                             return CreateFileNode(fileInfo.Name, FileType.SymLink, 0, depth + 1);
+                        if (fileInfo.IsDirectory())
+                            return CreateDirNode(fileInfo.FullName, fileInfo.Name, depth + 1);
                         return CreateFileNode(fileInfo.Name, FileType.File, fileInfo.Length, depth + 1);
                     }));
             children.Sort((x, y) => string.Compare(x.FileName, y.FileName, StringComparison.OrdinalIgnoreCase));
