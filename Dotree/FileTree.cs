@@ -98,16 +98,16 @@ public class FileTree
 
             var child = node.Children[i];
             var filePrefix = isLast
-                ? $"{basePrefix}[{_config.BoxBorderColor}]{_config.BottomL}{_config.Horizontal}[/]{_config.Spacing}"
-                : $"{basePrefix}[{_config.BoxBorderColor}]{_config.SidewayT}{_config.Horizontal}[/]{_config.Spacing}";
+                ? $"{basePrefix}[{_config.BoxBorderColor}]{_config.BottomL}{_config.Horizontal}[/] "
+                : $"{basePrefix}[{_config.BoxBorderColor}]{_config.SidewayT}{_config.Horizontal}[/] ";
 
             ConstructRow(child, sb, basePrefix: filePrefix);
 
             if (child.FileType == FileType.Dir)
             {
                 var dirPrefix = isLast
-                    ? $"{basePrefix}{_config.Spacing}{_config.Spacing}"
-                    : $"{basePrefix}[{_config.BoxBorderColor}]{_config.Vertical}[/] {_config.Spacing}";
+                    ? $"{basePrefix}  "
+                    : $"{basePrefix}[{_config.BoxBorderColor}]{_config.Vertical}[/]  ";
                 ConstructBranch(child, sb, basePrefix: dirPrefix);
             }
         }

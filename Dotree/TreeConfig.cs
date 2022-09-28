@@ -23,9 +23,6 @@ public record struct TreeConfig
     [JsonPropertyName("boxBorderColor")]
     public string BoxBorderColor { get; init; } = "aqua";
 
-    [JsonPropertyName("spacingCharacter")]
-    public string Spacing { get; set; } = "  ";
-
     [JsonPropertyName("sidewayTCharacter")]
     public char SidewayT { get; set; } = '\u251C';
 
